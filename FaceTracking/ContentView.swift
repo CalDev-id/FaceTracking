@@ -2,8 +2,13 @@ import SwiftUI
 import AVFoundation
 import Vision
 
+
 struct ContentView: View {
     @StateObject private var viewModel = FaceTrackingViewModel()
+    @State private var capturedImages: [UIImage] = []
+    @State private var currentCaptureStep: Int = 0
+    @State private var showCapturedImagesView = false
+    @State private var timer: Timer?
 
     var body: some View {
         ZStack {
@@ -11,7 +16,7 @@ struct ContentView: View {
             CameraPreviewView(session: viewModel.session)
                 .edgesIgnoringSafeArea(.all) // Membuat tampilan kamera full screen
             
-            VStack{
+            VStack {
                 GeometryReader { geometry in
                     let screenSize = geometry.size
                     let ovalWidth: CGFloat = 350 // Perbesar ukuran oval sesuai keinginan
@@ -23,7 +28,8 @@ struct ContentView: View {
                         .position(x: screenSize.width / 2, y: screenSize.height / 2)
                 }
             }
-            VStack{
+            
+            VStack {
                 Text(
                     viewModel.faceDistanceStatus == "Too Far" ? "TERLALU JAUH" :
                     viewModel.faceOrientation == "No face detected" ? "Posisikan wajah anda di\narea lingkaran" :
@@ -34,8 +40,9 @@ struct ContentView: View {
                 Spacer()
             }
             .padding(.top, 80)
+
             // Informasi orientasi wajah dan kondisi pencahayaan
-            VStack{
+            VStack {
                 HStack {
                     Spacer()
                     Text("PENCAHAYAAN")
@@ -44,9 +51,9 @@ struct ContentView: View {
                         .padding(10)
                         .background(viewModel.lightingCondition == "normal" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
                         .overlay(
-                                RoundedRectangle(cornerRadius: 0)
-                                    .stroke(viewModel.lightingCondition == "normal" ? Color.green : Color.red, lineWidth: 2)
-                            )
+                            RoundedRectangle(cornerRadius: 0)
+                                .stroke(viewModel.lightingCondition == "normal" ? Color.green : Color.red, lineWidth: 2)
+                        )
                     Spacer()
                     Text("POSISI WAJAH")
                         .font(.system(size: 12))
@@ -54,39 +61,69 @@ struct ContentView: View {
                         .padding(10)
                         .background(viewModel.faceDistanceStatus == "Normal" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
                         .overlay(
-                                RoundedRectangle(cornerRadius: 0)
-                                    .stroke(viewModel.faceDistanceStatus == "Normal" ? Color.green : Color.red, lineWidth: 2)
-                            )
+                            RoundedRectangle(cornerRadius: 0)
+                                .stroke(viewModel.faceDistanceStatus == "Normal" ? Color.green : Color.red, lineWidth: 2)
+                        )
                     Spacer()
-                    Text("LIHAT DEPAN")
-                        .font(.system(size: 12))
-                        .foregroundColor(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red)
-                        .padding(10)
-                        .background(viewModel.faceOrientation == "Facing Forward" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                        .overlay(
-                                RoundedRectangle(cornerRadius: 0)
-                                    .stroke(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red, lineWidth: 2)
-                            )
+                    VStack {
+                        // Logic to determine which message to show based on capturedImages count
+                        if capturedImages.count < 1 {
+                            Text("LIHAT DEPAN")
+                                .font(.system(size: 12))
+                                .foregroundColor(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red)
+                                .padding(10)
+                                .background(viewModel.faceOrientation == "Facing Forward" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .stroke(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red, lineWidth: 2)
+                                )
+                        } else if capturedImages.count == 1 {
+                            Text("LIHAT KIRI")
+                                .font(.system(size: 12))
+                                .foregroundColor(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red)
+                                .padding(10)
+                                .background(viewModel.faceOrientation == "Facing Left" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .stroke(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red, lineWidth: 2)
+                                )
+                        } else {
+                            Text("LIHAT KANAN")
+                                .font(.system(size: 12))
+                                .foregroundColor(viewModel.faceOrientation == "Facing Right" ? Color.green : Color.red)
+                                .padding(10)
+                                .background(viewModel.faceOrientation == "Facing Right" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .stroke(viewModel.faceOrientation == "Facing Right" ? Color.green : Color.red, lineWidth: 2)
+                                )
+                        }
+                    }                    
                     Spacer()
                 }
                 .padding()
                 .background(.black.opacity(0.8))
+                
                 Spacer()
+
                 HStack {
                     Spacer()
-                    //ganti image circle ini dengan lingkaran yang apabila image pertama sudah terambil akan berwarna hijau
-                    Image("circle")
+                    // Lingkaran pertama
+                    Image(systemName: capturedImages.count > 0 ? "circle.fill" : "circle")
                         .resizable()
+                        .foregroundColor(capturedImages.count > 0 ? .green : .white)
                         .frame(width: 50, height: 50)
                     Spacer()
-                    //ganti image circle ini dengan lingkaran yang apabila image kedua sudah terambil akan berwarna hijau
-                    Image("circle")
+                    // Lingkaran kedua
+                    Image(systemName: capturedImages.count > 1 ? "circle.fill" : "circle")
                         .resizable()
+                        .foregroundColor(capturedImages.count > 1 ? .green : .white)
                         .frame(width: 50, height: 50)
                     Spacer()
-                    //ganti image circle ini dengan lingkaran yang apabila image ketiga sudah terambil akan berwarna hijau
-                    Image("circle")
+                    // Lingkaran ketiga
+                    Image(systemName: capturedImages.count > 2 ? "circle.fill" : "circle")
                         .resizable()
+                        .foregroundColor(capturedImages.count > 2 ? .green : .white)
                         .frame(width: 50, height: 50)
                     Spacer()
                 }
@@ -95,12 +132,90 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Otomatis memulai kamera saat tampilan muncul
+            // Memulai sesi kamera dan proses penangkapan gambar
             viewModel.startSession()
+            startCaptureProcess()
         }
         .onDisappear {
-            // Menghentikan kamera saat tampilan menghilang
             viewModel.stopSession()
+            timer?.invalidate() // Hentikan timer ketika tampilan hilang
+        }
+        .sheet(isPresented: $showCapturedImagesView) {
+            CapturedImagesView(images: capturedImages)
+        }
+    }
+
+    func startCaptureProcess() {
+        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+            if viewModel.faceDistanceStatus == "Normal" && viewModel.lightingCondition == "normal" {
+                switch currentCaptureStep {
+                case 0:
+                    if viewModel.faceOrientation == "Facing Forward" {
+                        captureImage()
+                    }
+                case 1:
+                    if viewModel.faceOrientation == "Facing Right" {
+                        captureImage()
+                    }
+                case 2:
+                    if viewModel.faceOrientation == "Facing Left" {
+                        captureImage()
+                        timer?.invalidate()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                            showCapturedImagesView = true // Tampilkan halaman hasil gambar
+                        }
+                    }
+                default:
+                    break
+                }
+            }
+        }
+    }
+
+    func captureImage() {
+        if let sampleBuffer = viewModel.lastSampleBuffer {
+            if let capturedImage = captureImage(from: sampleBuffer) {
+                capturedImages.append(capturedImage)
+            }
+        }
+        currentCaptureStep += 1
+    }
+
+    func captureImage(from sampleBuffer: CMSampleBuffer) -> UIImage? {
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+            return nil
+        }
+
+        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+
+        if let cgImage = context.createCGImage(ciImage, from: ciImage.extent) {
+            return UIImage(cgImage: cgImage)
+        }
+
+        return nil
+    }
+}
+
+//ini
+struct CapturedImagesView: View {
+    let images: [UIImage]
+
+    var body: some View {
+        VStack {
+            Text("Captured Images")
+                .font(.title)
+                .padding()
+            
+            HStack {
+                ForEach(images, id: \.self) { image in
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 100, height: 100)
+                        .padding()
+                }
+            }
         }
     }
 }
@@ -112,6 +227,7 @@ class FaceTrackingViewModel: NSObject, ObservableObject {
     @Published var lightingCondition: String = "Lighting Condition: Unknown"
     @Published var isFaceInCircle: Bool = false
     @Published var faceBoundingBox: CGRect = .zero // Menyimpan bounding box wajah untuk digunakan pada oval
+    @Published var lastSampleBuffer: CMSampleBuffer?
 
     var session = AVCaptureSession()
     private var faceDetectionRequest = VNDetectFaceRectanglesRequest()
@@ -273,6 +389,7 @@ extension FaceTrackingViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
             return
         }
 
+        // Menangani pengenalan wajah
         let imageRequestHandler = VNImageRequestHandler(cvPixelBuffer: pixelBuffer, orientation: .leftMirrored, options: [:])
         
         do {
@@ -281,6 +398,7 @@ extension FaceTrackingViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
             print("Failed to perform face detection: \(error)")
         }
         
+        // Menghitung luminance rata-rata untuk menentukan kondisi pencahayaan
         let averageLuminance = calculateAverageLuminance(from: pixelBuffer)
         
         DispatchQueue.main.async {
@@ -290,6 +408,9 @@ extension FaceTrackingViewModel: AVCaptureVideoDataOutputSampleBufferDelegate {
                 self.lightingCondition = "dark"
             }
         }
+        
+        // Menyimpan sample buffer terakhir untuk diambil gambarnya nanti
+        lastSampleBuffer = sampleBuffer
     }
 }
 
