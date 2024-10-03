@@ -24,48 +24,74 @@ struct ContentView: View {
                 }
             }
             VStack{
-                Text(viewModel.faceDistanceStatus) // Tampilkan status jarak
-                    .foregroundColor(.white)
-                    .padding()
-                    .background(Color.black.opacity(0.6))
-                    .cornerRadius(8)
+                Text(
+                    viewModel.faceDistanceStatus == "Too Far" ? "TERLALU JAUH" :
+                    viewModel.faceOrientation == "No face detected" ? "Posisikan wajah anda di\narea lingkaran" :
+                    viewModel.lightingCondition == "dark" ? "TERLALU GELAP" : ""
+                )
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                Spacer()
             }
+            .padding(.top, 80)
             // Informasi orientasi wajah dan kondisi pencahayaan
             VStack{
                 HStack {
                     Spacer()
-                    Text(viewModel.faceOrientation)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(8)
-                    
-                    Text(viewModel.lightingCondition)
-                        .foregroundColor(.white)
-                        .padding()
-                        .background(Color.black.opacity(0.6))
-                        .cornerRadius(8)
+                    Text("PENCAHAYAAN")
+                        .font(.system(size: 12))
+                        .foregroundColor(viewModel.lightingCondition == "normal" ? Color.green : Color.red)
+                        .padding(10)
+                        .background(viewModel.lightingCondition == "normal" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .overlay(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .stroke(viewModel.lightingCondition == "normal" ? Color.green : Color.red, lineWidth: 2)
+                            )
+                    Spacer()
+                    Text("POSISI WAJAH")
+                        .font(.system(size: 12))
+                        .foregroundColor(viewModel.faceDistanceStatus == "Normal" ? Color.green : Color.red)
+                        .padding(10)
+                        .background(viewModel.faceDistanceStatus == "Normal" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .overlay(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .stroke(viewModel.faceDistanceStatus == "Normal" ? Color.green : Color.red, lineWidth: 2)
+                            )
+                    Spacer()
+                    Text("LIHAT DEPAN")
+                        .font(.system(size: 12))
+                        .foregroundColor(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red)
+                        .padding(10)
+                        .background(viewModel.faceOrientation == "Facing Forward" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                        .overlay(
+                                RoundedRectangle(cornerRadius: 0)
+                                    .stroke(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red, lineWidth: 2)
+                            )
+                    Spacer()
                 }
                 .padding()
-                .background(.black.opacity(0.5))
+                .background(.black.opacity(0.8))
                 Spacer()
                 HStack {
                     Spacer()
+                    //ganti image circle ini dengan lingkaran yang apabila image pertama sudah terambil akan berwarna hijau
                     Image("circle")
                         .resizable()
                         .frame(width: 50, height: 50)
                     Spacer()
+                    //ganti image circle ini dengan lingkaran yang apabila image kedua sudah terambil akan berwarna hijau
                     Image("circle")
                         .resizable()
                         .frame(width: 50, height: 50)
                     Spacer()
+                    //ganti image circle ini dengan lingkaran yang apabila image ketiga sudah terambil akan berwarna hijau
                     Image("circle")
                         .resizable()
                         .frame(width: 50, height: 50)
                     Spacer()
                 }
                 .padding()
-                .background(.black.opacity(0.5))
+                .background(.black.opacity(0.8))
             }
         }
         .onAppear {
@@ -182,27 +208,27 @@ class FaceTrackingViewModel: NSObject, ObservableObject {
         if ovalRect.contains(faceRect) {
             // If the face is inside the oval, check its size
             let faceWidth = faceRect.width
-
+///adjust disini --------------------------------------------------------------------------------------
             // Define acceptable width range for "Normal"
             let normalWidthMin: CGFloat = 180 // Adjust this value as needed
             let normalWidthMax: CGFloat = 320 // Adjust this value as needed
 
             // Update distance status based on face width
             if faceWidth < normalWidthMin {
-                self.faceDistanceStatus = "Distance: Too Far"
+                self.faceDistanceStatus = "Too Far"
                 self.isFaceInCircle = false
             } else if faceWidth > normalWidthMax {
-                self.faceDistanceStatus = "Distance: Out of Range"
+                self.faceDistanceStatus = "Out of Range"
                 self.isFaceInCircle = false
             } else {
                 // If the face width is within acceptable range
-                self.faceDistanceStatus = "Distance: Normal"
+                self.faceDistanceStatus = "Normal"
                 self.isFaceInCircle = true
             }
         } else {
             // If the face is outside the oval, set status to out of range
             self.isFaceInCircle = false
-            self.faceDistanceStatus = "Distance: Out of Range"
+            self.faceDistanceStatus = "Out of Range"
         }
     }
 
