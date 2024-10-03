@@ -170,7 +170,7 @@ struct ContentView: View {
     }
 
     func startCaptureProcess() {
-        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
             if viewModel.faceDistanceStatus == "Normal" && viewModel.lightingCondition == "normal" {
                 switch currentCaptureStep {
                 case 0:
@@ -195,9 +195,9 @@ struct ContentView: View {
     func startCountdown(for orientation: FaceOrientation) {
         guard !isCountdownActive else { return } // Prevent multiple countdowns
         isCountdownActive = true
-        countdown = 3 // Reset countdown
+        countdown = 2 // Set countdown to 2
 
-        // Display countdown numbers: 3, 2, 1
+        // Display countdown numbers: 2, 1
         Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { timer in
             self.countdown = 2
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
@@ -210,6 +210,7 @@ struct ContentView: View {
             }
         }
     }
+
 
     func captureImage(for orientation: FaceOrientation) {
         if let sampleBuffer = viewModel.lastSampleBuffer {
