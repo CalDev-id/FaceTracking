@@ -2,25 +2,26 @@ import SwiftUI
 import AVFoundation
 import Vision
 
-
 struct ContentView: View {
     @StateObject private var viewModel = FaceTrackingViewModel()
     @State private var capturedImages: [UIImage] = []
     @State private var currentCaptureStep: Int = 0
     @State private var showCapturedImagesView = false
+    @State private var countdown: Int = 3 // Countdown starts at 3
+    @State private var isCountdownActive: Bool = false // To track if countdown is active
     @State private var timer: Timer?
-
+    
     var body: some View {
         ZStack {
-            // Tampilan kamera full screen
+            // Full-screen camera view
             CameraPreviewView(session: viewModel.session)
-                .edgesIgnoringSafeArea(.all) // Membuat tampilan kamera full screen
+                .edgesIgnoringSafeArea(.all)
             
             VStack {
                 GeometryReader { geometry in
                     let screenSize = geometry.size
-                    let ovalWidth: CGFloat = 350 // Perbesar ukuran oval sesuai keinginan
-                    let ovalHeight: CGFloat = 450 // Atur tinggi oval sesuai keinginan
+                    let ovalWidth: CGFloat = 350 // Adjust oval width
+                    let ovalHeight: CGFloat = 450 // Adjust oval height
                     
                     Ellipse()
                         .stroke(viewModel.isFaceInCircle ? Color.green : Color.red, lineWidth: 4)
@@ -35,13 +36,31 @@ struct ContentView: View {
                     viewModel.faceOrientation == "No face detected" ? "Posisikan wajah anda di\narea lingkaran" :
                     viewModel.lightingCondition == "dark" ? "TERLALU GELAP" : ""
                 )
-                .foregroundColor(.white)
-                .multilineTextAlignment(.center)
+                if viewModel.faceDistanceStatus == "Normal" && viewModel.lightingCondition == "normal" {
+                    if capturedImages.count < 1 && viewModel.faceOrientation == "Facing Forward" {
+                        Text("Bersiap Memotret")
+                    } else if capturedImages.count == 1 && viewModel.faceOrientation == "Facing Right" {
+                        Text("Bersiap Memotret")
+                    } else if capturedImages.count == 2 && viewModel.faceOrientation == "Facing Left" {
+                        Text("Bersiap Memotret")
+                    }
+                }
+                if viewModel.faceOrientation != "No face detected"{
+                    if capturedImages.count < 1 && viewModel.faceOrientation != "Facing Forward" {
+                        Text("LIHAT KEDEPAN")
+                    } else if capturedImages.count == 1 && viewModel.faceOrientation != "Facing Right" {
+                        Text("LIHAT KEKIRI")
+                    } else if capturedImages.count == 2 && viewModel.faceOrientation != "Facing Left" {
+                        Text("LIHAT KEKANAN")
+                    }
+                }
                 Spacer()
             }
+            .foregroundColor(.white)
+            .multilineTextAlignment(.center)
             .padding(.top, 80)
 
-            // Informasi orientasi wajah dan kondisi pencahayaan
+            // Display lighting and face orientation status
             VStack {
                 HStack {
                     Spacer()
@@ -66,7 +85,7 @@ struct ContentView: View {
                         )
                     Spacer()
                     VStack {
-                        // Logic to determine which message to show based on capturedImages count
+                        // Display current capture step
                         if capturedImages.count < 1 {
                             Text("LIHAT DEPAN")
                                 .font(.system(size: 12))
@@ -77,8 +96,8 @@ struct ContentView: View {
                                     RoundedRectangle(cornerRadius: 0)
                                         .stroke(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red, lineWidth: 2)
                                 )
-                        } else if capturedImages.count == 1 {
-                            Text("LIHAT KIRI")
+                        } else if capturedImages.count == 2 {
+                            Text("LIHAT KANAN")
                                 .font(.system(size: 12))
                                 .foregroundColor(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red)
                                 .padding(10)
@@ -87,8 +106,8 @@ struct ContentView: View {
                                     RoundedRectangle(cornerRadius: 0)
                                         .stroke(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red, lineWidth: 2)
                                 )
-                        } else {
-                            Text("LIHAT KANAN")
+                        } else if capturedImages.count == 1 {
+                            Text("LIHAT KIRI")
                                 .font(.system(size: 12))
                                 .foregroundColor(viewModel.faceOrientation == "Facing Right" ? Color.green : Color.red)
                                 .padding(10)
@@ -98,7 +117,7 @@ struct ContentView: View {
                                         .stroke(viewModel.faceOrientation == "Facing Right" ? Color.green : Color.red, lineWidth: 2)
                                 )
                         }
-                    }                    
+                    }
                     Spacer()
                 }
                 .padding()
@@ -108,19 +127,17 @@ struct ContentView: View {
 
                 HStack {
                     Spacer()
-                    // Lingkaran pertama
+                    // Circle indicators for captured images
                     Image(systemName: capturedImages.count > 0 ? "circle.fill" : "circle")
                         .resizable()
                         .foregroundColor(capturedImages.count > 0 ? .green : .white)
                         .frame(width: 50, height: 50)
                     Spacer()
-                    // Lingkaran kedua
                     Image(systemName: capturedImages.count > 1 ? "circle.fill" : "circle")
                         .resizable()
                         .foregroundColor(capturedImages.count > 1 ? .green : .white)
                         .frame(width: 50, height: 50)
                     Spacer()
-                    // Lingkaran ketiga
                     Image(systemName: capturedImages.count > 2 ? "circle.fill" : "circle")
                         .resizable()
                         .foregroundColor(capturedImages.count > 2 ? .green : .white)
@@ -130,15 +147,22 @@ struct ContentView: View {
                 .padding()
                 .background(.black.opacity(0.8))
             }
+
+            // Timer Overlay
+            if isCountdownActive {
+                Text("\(countdown)")
+                    .font(.largeTitle)
+                    .foregroundColor(.white)
+                    .padding()
+            }
         }
         .onAppear {
-            // Memulai sesi kamera dan proses penangkapan gambar
-            viewModel.startSession()
-            startCaptureProcess()
+            viewModel.startSession() // Start the camera session
+            startCaptureProcess() // Start the capture process
         }
         .onDisappear {
-            viewModel.stopSession()
-            timer?.invalidate() // Hentikan timer ketika tampilan hilang
+            viewModel.stopSession() // Stop the camera session
+            timer?.invalidate() // Stop the timer when the view disappears
         }
         .sheet(isPresented: $showCapturedImagesView) {
             CapturedImagesView(images: capturedImages)
@@ -151,19 +175,15 @@ struct ContentView: View {
                 switch currentCaptureStep {
                 case 0:
                     if viewModel.faceOrientation == "Facing Forward" {
-                        captureImage()
+                        startCountdown(for: .facingForward) // Start countdown for forward orientation
                     }
                 case 1:
                     if viewModel.faceOrientation == "Facing Right" {
-                        captureImage()
+                        startCountdown(for: .facingRight) // Start countdown for right orientation
                     }
                 case 2:
                     if viewModel.faceOrientation == "Facing Left" {
-                        captureImage()
-                        timer?.invalidate()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-                            showCapturedImagesView = true // Tampilkan halaman hasil gambar
-                        }
+                        startCountdown(for: .facingLeft) // Start countdown for left orientation
                     }
                 default:
                     break
@@ -172,13 +192,40 @@ struct ContentView: View {
         }
     }
 
-    func captureImage() {
+    func startCountdown(for orientation: FaceOrientation) {
+        guard !isCountdownActive else { return } // Prevent multiple countdowns
+        isCountdownActive = true
+        countdown = 3 // Reset countdown
+
+        // Display countdown numbers: 3, 2, 1
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { timer in
+            self.countdown = 2
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                self.countdown = 1
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    self.countdown = 0
+                    self.captureImage(for: orientation) // Capture the image after countdown
+                    self.isCountdownActive = false // Hide countdown
+                }
+            }
+        }
+    }
+
+    func captureImage(for orientation: FaceOrientation) {
         if let sampleBuffer = viewModel.lastSampleBuffer {
             if let capturedImage = captureImage(from: sampleBuffer) {
                 capturedImages.append(capturedImage)
             }
         }
-        currentCaptureStep += 1
+        currentCaptureStep += 1 // Move to the next capture step
+        
+        // If we are done capturing all three orientations, navigate to the results view
+        if currentCaptureStep > 2 {
+            timer?.invalidate() // Stop the main capture timer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                showCapturedImagesView = true // Show captured images view
+            }
+        }
     }
 
     func captureImage(from sampleBuffer: CMSampleBuffer) -> UIImage? {
@@ -196,6 +243,13 @@ struct ContentView: View {
         return nil
     }
 }
+
+enum FaceOrientation {
+    case facingForward
+    case facingRight
+    case facingLeft
+}
+
 
 //ini
 struct CapturedImagesView: View {
