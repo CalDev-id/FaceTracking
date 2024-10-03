@@ -24,7 +24,7 @@ struct ContentView: View {
                     let ovalHeight: CGFloat = 450 // Adjust oval height
                     
                     Ellipse()
-                        .stroke(viewModel.isFaceInCircle ? Color.green : Color.red, lineWidth: 4)
+                        .stroke(viewModel.isFaceInCircle ? Color.white : Color.red, lineWidth: 4)
                         .frame(width: ovalWidth, height: ovalHeight)
                         .position(x: screenSize.width / 2, y: screenSize.height / 2)
                 }
@@ -96,16 +96,6 @@ struct ContentView: View {
                                     RoundedRectangle(cornerRadius: 0)
                                         .stroke(viewModel.faceOrientation == "Facing Forward" ? Color.green : Color.red, lineWidth: 2)
                                 )
-                        } else if capturedImages.count == 2 {
-                            Text("LIHAT KANAN")
-                                .font(.system(size: 12))
-                                .foregroundColor(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red)
-                                .padding(10)
-                                .background(viewModel.faceOrientation == "Facing Left" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 0)
-                                        .stroke(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red, lineWidth: 2)
-                                )
                         } else if capturedImages.count == 1 {
                             Text("LIHAT KIRI")
                                 .font(.system(size: 12))
@@ -115,6 +105,16 @@ struct ContentView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 0)
                                         .stroke(viewModel.faceOrientation == "Facing Right" ? Color.green : Color.red, lineWidth: 2)
+                                )
+                        } else {
+                            Text("LIHAT KANAN")
+                                .font(.system(size: 12))
+                                .foregroundColor(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red)
+                                .padding(10)
+                                .background(viewModel.faceOrientation == "Facing Left" ? Color.green.opacity(0.2) : Color.red.opacity(0.2))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 0)
+                                        .stroke(viewModel.faceOrientation == "Facing Left" ? Color.green : Color.red, lineWidth: 2)
                                 )
                         }
                     }
