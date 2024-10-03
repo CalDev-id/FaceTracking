@@ -193,23 +193,48 @@ struct ContentView: View {
     }
 
     func startCountdown(for orientation: FaceOrientation) {
-        guard !isCountdownActive else { return } // Prevent multiple countdowns
+        guard !isCountdownActive else { return } // Cegah countdown ganda
         isCountdownActive = true
         countdown = 3 // Reset countdown
 
-        // Display countdown numbers: 3, 2, 1
-        Timer.scheduledTimer(withTimeInterval: 0.8, repeats: false) { timer in
-            self.countdown = 2
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                self.countdown = 1
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    self.countdown = 0
-                    self.captureImage(for: orientation) // Capture the image after countdown
-                    self.isCountdownActive = false // Hide countdown
+        // Countdown loop dengan pengecekan kondisi setiap detik
+        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
+            if viewModel.faceDistanceStatus == "Normal" && viewModel.lightingCondition == "normal" {
+                switch orientation {
+                case .facingForward:
+                    if viewModel.faceOrientation != "Facing Forward" {
+                        timer.invalidate()
+                        isCountdownActive = false
+                        return
+                    }
+                case .facingRight:
+                    if viewModel.faceOrientation != "Facing Right" {
+                        timer.invalidate()
+                        isCountdownActive = false
+                        return
+                    }
+                case .facingLeft:
+                    if viewModel.faceOrientation != "Facing Left" {
+                        timer.invalidate()
+                        isCountdownActive = false
+                        return
+                    }
                 }
+
+                countdown -= 1 // Kurangi countdown setiap detik
+                if countdown == 0 {
+                    timer.invalidate() // Hentikan timer setelah countdown selesai
+                    captureImage(for: orientation) // Capture image setelah countdown selesai
+                    isCountdownActive = false // Sembunyikan countdown
+                }
+            } else {
+                // Jika kondisi tidak memenuhi, hentikan countdown
+                timer.invalidate()
+                isCountdownActive = false
             }
         }
     }
+
 
 
     func captureImage(for orientation: FaceOrientation) {
